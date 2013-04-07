@@ -1,3 +1,7 @@
+# Had to export the following before running
+# export CFLAGS=-sysroot,/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk
+# export LDFLAGS=-L/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk/usr/lib
+#
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext

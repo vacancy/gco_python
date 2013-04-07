@@ -74,5 +74,9 @@ This package gives a high level interface to gco, providing the following functi
     Graph cut on an arbitrary graph with global label affinity-matrix and
     edgeweights.
 
+``cut_inpaint``:_
+    IN PROGRESS
+    Graph cut for _Kaiming He and Jian Sun_, [Statistics of Patch Offsets for Image Completion](http://research.microsoft.com/en-us/um/people/kahe/eccv12/index.html).
+
 See ``example.py`` and ``example_middlebury.py`` for examples and the gco README
 for more details.
