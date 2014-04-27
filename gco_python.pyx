@@ -19,6 +19,7 @@ cdef extern from "GCoptimization.h":
         void setSmoothCostFunctor(SmoothCostFunctor* f)
         void setLabelOrder(bool RANDOM_LABEL_ORDER)
         int whatLabel(int node)
+        void setVerbosity(int level)
 
     cdef cppclass GCoptimizationGeneralGraph:
         GCoptimizationGeneralGraph(int n_vertices, int n_labels)
@@ -60,7 +61,7 @@ cdef cppclass InpaintFunctor(GCoptimizationGridGraph.SmoothCostFunctor):
 
     int is_valid(int x, int y):
         return x >=0 and x < this.w and y >= 0 and y < this.h and is_known(x,y)
-        
+    
     int compute_seam(int s, int l1, int l2):
         cdef int x = s % this.w
         cdef int y = (s - x) / this.w
@@ -70,11 +71,13 @@ cdef cppclass InpaintFunctor(GCoptimizationGridGraph.SmoothCostFunctor):
 
         cdef int x2 = x + this.offsets[1 + 2 * l2]
         cdef int y2 = y + this.offsets[0 + 2 * l2]
-        # for destination pixels that are not known, mark as invalid with large energy (256 ^3 + 1)
+        
+        # for destination pixels that are not known, bail with 0 energy
+        # since single site infinity handles it
         if(not is_valid(x1,y1)):
-            return 16777217
+            return 0
         if(not is_valid(x2,y2)):
-            return 16777217
+            return 0
             
         cdef int c
         cdef int res
@@ -87,9 +90,10 @@ cdef cppclass InpaintFunctor(GCoptimizationGridGraph.SmoothCostFunctor):
             tmp = t1 - t2
             res += tmp * tmp
         return res
-        
+    
     int compute(int s1, int s2, int l1, int l2):
         # ||I(s1 + l1) - I(s1 + l2)||^2 + ||I(s2 + l1) - I(s2 + l2)||^2
+        if(l1 == l2): return 0
         cdef int e1 = compute_seam(s1,l1,l2)
         cdef int e2 = compute_seam(s2,l1,l2)
         return e1 + e2
@@ -99,7 +103,9 @@ def cut_inpaint(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
         np.ndarray[np.int32_t, ndim=3, mode='c'] image,
         np.ndarray[np.int32_t, ndim=2, mode='c'] known,
         n_iter=5,
-        algorithm='swap'):
+        algorithm='swap',
+        randomizeOrder = False,
+        verbosity = 0):
     """
     Apply multi-label graphcuts to grid graph using smoothing inpaint functor for
     pairwise costs
@@ -112,12 +118,16 @@ def cut_inpaint(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
         Offset for each label
     image: ndarray, int32, shape = (height, width, 3)
         RGB image for calculating pairwise costs
-    known: ndarray, int32, shape = (height, width, 2)
+    known: ndarray, int32, shape = (height, width)
         Whether a pixel is in known or unknown region (1 = known, 0 unknown)
     n_iter: int, (default=5)
         Number of iterations
     algorithm: string, `expansion` or `swap`, default=expansion
         Whether to perform alpha-expansion or alpha-beta-swaps.
+    randomizeOrder: boolean, default = False
+        Whether to randomize min-cut order of swaps/expansions
+    verbosity: int, (0 = none, 1 = medium, 2 = max)
+        Control debug output from min-cut algorithm
     """
 
     if unary_cost.shape[2] != offsets.shape[0]:
@@ -132,6 +142,9 @@ def cut_inpaint(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
         raise ValueError("Image must be RGB")
     if image.shape[0] != known.shape[0] and image.shape[1] != known.shape[1]:
         raise ValueError("known shape must match image shape")
+
+    # everything is ROW major at this point x = col, y = row
+
     cdef int h = unary_cost.shape[0]
     cdef int w = unary_cost.shape[1]
     cdef int n_labels = offsets.shape[0]
@@ -139,7 +152,11 @@ def cut_inpaint(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
     cdef GCoptimizationGridGraph* gc = new GCoptimizationGridGraph(w, h, n_labels)
     gc.setDataCost(<int*>unary_cost.data)
     gc.setSmoothCostFunctor(<InpaintFunctor*>new InpaintFunctor(w, h, n_labels, <int*>image.data, <int*>offsets.data, <int*>known.data))
-    gc.setLabelOrder(True)
+    if(randomizeOrder):
+        print "Randomizing label order"
+        gc.setLabelOrder(True)
+    print "Verbosity {0}".format(verbosity)
+    gc.setVerbosity(verbosity)
     if algorithm == 'swap':
         gc.swap(n_iter)
     elif algorithm == 'expansion':
