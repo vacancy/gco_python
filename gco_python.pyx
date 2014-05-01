@@ -75,10 +75,13 @@ cdef cppclass InpaintFunctor(GCoptimizationGridGraph.SmoothCostFunctor):
         
         # for destination pixels that are not known, bail with 0 energy
         # since single site infinity handles it
+        if(not is_valid(x1,y1) and not is_valid(x2,y2)):
+            return 0
         if(not is_valid(x1,y1)):
-            return 0
+            return this.image[imageIndexFromSubs(x2,y2,0)] + this.image[imageIndexFromSubs(x2,y2,1)] + this.image[imageIndexFromSubs(x2,y2,2)]
+
         if(not is_valid(x2,y2)):
-            return 0
+            return this.image[imageIndexFromSubs(x1,y1,0)] + this.image[imageIndexFromSubs(x1,y1,1)] + this.image[imageIndexFromSubs(x1,y1,2)]
             
         cdef int c
         cdef int res
@@ -89,7 +92,7 @@ cdef cppclass InpaintFunctor(GCoptimizationGridGraph.SmoothCostFunctor):
             t1 = this.image[imageIndexFromSubs(x1,y1,c)]
             t2 = this.image[imageIndexFromSubs(x2,y2,c)]
             tmp = t1 - t2
-            res += tmp * tmp
+            res += abs(tmp)
         return res
     
     int compute(int s1, int s2, int l1, int l2):
