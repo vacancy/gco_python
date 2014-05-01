@@ -13,7 +13,6 @@ cdef extern from "GCoptimization.h":
         GCoptimizationGridGraph(int width, int height, int n_labels)
         void setDataCost(int *)
         void setSmoothCost(int *)
-        void setLabelCost(int *)
         void expansion(int n_iterations)
         void swap(int n_iterations)
         void setSmoothCostVH(int* pairwise, int* V, int* H)
@@ -103,7 +102,6 @@ def cut_inpaint(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
         np.ndarray[np.int32_t, ndim=2, mode='c'] offsets,
         np.ndarray[np.int32_t, ndim=3, mode='c'] image,
         np.ndarray[np.int32_t, ndim=2, mode='c'] known,
-        np.ndarray[np.int32_t, ndim=1, mode='c'] label_cost,
         n_iter=5,
         algorithm='swap',
         randomizeOrder = False,
@@ -122,8 +120,6 @@ def cut_inpaint(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
         RGB image for calculating pairwise costs
     known: ndarray, int32, shape = (height, width)
         Whether a pixel is in known or unknown region (1 = known, 0 unknown)
-    label_cost: ndarray, int32, shape=(n_labels)
-        Cost of using each label
     n_iter: int, (default=5)
         Number of iterations
     algorithm: string, `expansion` or `swap`, default=expansion
@@ -156,7 +152,6 @@ def cut_inpaint(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
     cdef GCoptimizationGridGraph* gc = new GCoptimizationGridGraph(w, h, n_labels)
     gc.setDataCost(<int*>unary_cost.data)
     gc.setSmoothCostFunctor(<InpaintFunctor*>new InpaintFunctor(w, h, n_labels, <int*>image.data, <int*>offsets.data, <int*>known.data))
-    gc.setLabelCost(<int*>label_cost.data)
     if(randomizeOrder):
         print "Randomizing label order"
         gc.setLabelOrder(True)
