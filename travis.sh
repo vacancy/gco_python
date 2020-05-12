@@ -6,4 +6,5 @@
 # Distributed under terms of the MIT license.
 #
 
-make all
+python setup.py build_ext -i
+

@@ -15,7 +15,7 @@ except:
     pass
 
 try:
-    from .pygco import cut_general_graph, cut_grid_graph, cut_grid_graph_simple
+    from .pygco import cut_inpaint, cut_simple, cut_simple_vh, cut_from_graph
 except ImportError as e:
     raise ImportError('Auto travis for pygco failed. Run ./travis.sh manually.') from e
 

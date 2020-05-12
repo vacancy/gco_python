@@ -38,10 +38,10 @@ cdef cppclass InpaintFunctor(GCoptimizationGridGraph.SmoothCostFunctor):
     int* image
     int* offsets
     int* known
-    
+
     # Since I always get confused
     # x+y*width = site label
-    # col + row * width 
+    # col + row * width
     # channel + (x + y*width) * 3
     # offsets [:,0] row/y offset
     # offsets [:,1] col/x offset
@@ -61,24 +61,24 @@ cdef cppclass InpaintFunctor(GCoptimizationGridGraph.SmoothCostFunctor):
 
     int is_valid(int x, int y):
         return x >=0 and x < this.w and y >= 0 and y < this.h and is_known(x,y)
-    
+
     int compute_seam(int s, int l1, int l2):
         cdef int x = s % this.w
         cdef int y = (s - x) / this.w
-        
+
         cdef int x1 = x + this.offsets[1 + 2 * l1]
         cdef int y1 = y + this.offsets[0 + 2 * l1]
 
         cdef int x2 = x + this.offsets[1 + 2 * l2]
         cdef int y2 = y + this.offsets[0 + 2 * l2]
-        
+
         # for destination pixels that are not known, bail with 0 energy
         # since single site infinity handles it
         if(not is_valid(x1,y1)):
             return 0
         if(not is_valid(x2,y2)):
             return 0
-            
+
         cdef int c
         cdef int res
         cdef int t1
@@ -90,7 +90,7 @@ cdef cppclass InpaintFunctor(GCoptimizationGridGraph.SmoothCostFunctor):
             tmp = t1 - t2
             res += tmp * tmp
         return res
-    
+
     int compute(int s1, int s2, int l1, int l2):
         # ||I(s1 + l1) - I(s1 + l2)||^2 + ||I(s2 + l1) - I(s2 + l2)||^2
         if(l1 == l2): return 0
@@ -172,7 +172,7 @@ def cut_inpaint(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
     for i in xrange(w * h):
         result_ptr[i] = gc.whatLabel(i)
     return result
-        
+
 def cut_simple(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
         np.ndarray[np.int32_t, ndim=2, mode='c'] pairwise_cost, n_iter=5,
         algorithm='expansion'):
@@ -227,7 +227,7 @@ def cut_simple(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
 def cut_simple_vh(np.ndarray[np.int32_t, ndim=3, mode='c'] unary_cost,
         np.ndarray[np.int32_t, ndim=2, mode='c'] pairwise_cost,
         np.ndarray[np.int32_t, ndim=2, mode='c'] costV,
-        np.ndarray[np.int32_t, ndim=2, mode='c'] costH, 
+        np.ndarray[np.int32_t, ndim=2, mode='c'] costH,
         n_iter=5,
         algorithm='expansion'):
     """
