@@ -8,16 +8,19 @@ from Cython.Distutils import build_ext
 import os
 import numpy
 
-gco_directory = "gco_src"
+gco_directory = "../pygco/gco-v3.0"
 
-files = ['GCoptimization.cpp', 'graph.cpp', 'LinkedBlockList.cpp',
-         'maxflow.cpp']
+files = ['GCoptimization.cpp', 'LinkedBlockList.cpp']
 
 files = [os.path.join(gco_directory, f) for f in files]
 files.insert(0, "gco_python.pyx")
 
-setup(cmdclass={'build_ext': build_ext},
-      ext_modules=[Extension("pygco", files, language="c++",
-                             include_dirs=[gco_directory, numpy.get_include()],
-                             library_dirs=[gco_directory],
-                             extra_compile_args=["-fpermissive"])])
+setup(
+    cmdclass={'build_ext': build_ext},
+    ext_modules=[Extension(
+        "pygco", files, language="c++",
+        include_dirs=[gco_directory, numpy.get_include()],
+        library_dirs=[gco_directory],
+        extra_compile_args=["-fpermissive", "-Ofast"]
+    )]
+)
